@@ -19,7 +19,7 @@ Antes de começar, certifique-se de ter o seguinte instalado em seu ambiente de 
 1. Clone este repositório em sua máquina local:
 
 ```bash
-git clone [https://github.com/micvianna/trello.git](https://github.com/micvianna/projetoTrelloAutomacao.git)
+git clone [https://github.com/micvianna/projetoTrelloAutomacao.git]
 cd projetoTrelloAutomacao
 ```
 
