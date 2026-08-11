@@ -1,74 +1,111 @@
-import config from "../config/config"
+const requireTrelloCredential = (name, environmentVariable) => {
+  const value = Cypress.env(name);
 
-const { expect } = require("chai");
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(
+      `Missing Trello credential. Set ${environmentVariable} before running the suite.`,
+    );
+  }
 
-describe('Testes na API do Trello', () => {
-  const API_KEY = config.API_KEY; // Insira sua chave de API no arquivo do Trello aqui 'cypress/config/config.js'
-  const API_TOKEN = config.API_TOKEN; // Insira sua chave de token no arquivo do Trello aqui 'cypress/config/config.js' 
-  const URL_TRELLO = config.URL_TRELLO; // Fixada a url da API do Trello no arquivo 'cypress/config/config.js
+  return value;
+};
 
-  let cardName = 'Novo Card Cypress';
+describe("Trello API lifecycle", () => {
+  let apiKey;
+  let apiToken;
   let boardId;
-  let cardId;
-  let listBoard;
-  let newCardId;
 
-  it('Cadastrar um board', () => {
+  const trelloRequest = ({ method, url, qs = {}, ...options }) =>
     cy.request({
-      method: 'POST',
-      url: `${URL_TRELLO}/boards/?key=${API_KEY}&token=${API_TOKEN}`,
-      body: {
-        name: 'Novo Board',
-      }
-    }).then((response) => {
-      expect(response.status).to.eq(200); // Verifica se a requisição foi bem-sucedida
-      boardId = response.body.id; // Armazena o ID do board para uso futuro
-      cy.log(`Novo Board criado com sucesso! ID: ${boardId}`)
+      method,
+      url,
+      qs: {
+        ...qs,
+        key: apiKey,
+        token: apiToken,
+      },
+      log: false,
+      ...options,
+    });
+
+  before(() => {
+    apiKey = requireTrelloCredential(
+      "TRELLO_API_KEY",
+      "CYPRESS_TRELLO_API_KEY",
+    );
+    apiToken = requireTrelloCredential(
+      "TRELLO_API_TOKEN",
+      "CYPRESS_TRELLO_API_TOKEN",
+    );
+  });
+
+  after(() => {
+    if (!boardId) {
+      return;
+    }
+
+    trelloRequest({
+      method: "DELETE",
+      url: `/1/boards/${boardId}`,
+      failOnStatusCode: false,
+    }).then(() => {
+      boardId = undefined;
     });
   });
 
-  it('Criação de Lista no Trello', ()=> {
-    cy.request({
-      method: 'POST',
-      url: `${URL_TRELLO}/boards/${boardId}/lists?name=NovaLista&key=${API_KEY}&token=${API_TOKEN}`,
-    }).then((response) =>{
-      expect(response.status).to.eq(200);// Verifica se a requisição foi bem-sucedida
-      expect(response.body).to.have.property('id');
-      listBoard = response.body.id;// Armazena o ID da lista para uso futuro
-      cy.log(`Novo Board criado com sucesso! ID: ${listBoard}`);
-    });
-  });
+  it("creates and removes a board, list and card", () => {
+    const runId = Date.now();
+    let listId;
+    let cardId;
 
-  it('Criar um novo card no board do Trello', () => {
-    cy.request({
-      method: 'POST',
-      url: `${URL_TRELLO}/cards?key=${API_KEY}&token=${API_TOKEN}&name=${cardName}&idList=${listBoard}`,
-      
-    }).then((response) => {
-      expect(response.status).to.eq(200); // Verifica se a requisição foi bem-sucedida
-      cardId = response.body.id; // Armazena o ID do card para uso futuro
-      expect(cardId).to.exist;  // Verifica se o card foi criado com sucesso
-      cy.log(`Novo card criado com sucesso!`);// Log do ID do novo card
-    });
-  });
+    return trelloRequest({
+      method: "POST",
+      url: "/1/boards",
+      qs: { name: `Cypress Trello API Test ${runId}` },
+    })
+      .then((response) => {
+        expect(response.status).to.eq(200);
+        boardId = response.body.id;
 
-  it('Excluir um card', () => {
-    cy.request({
-      method: 'DELETE',
-      url: `${URL_TRELLO}/cards/${cardId}?key=${API_KEY}&token=${API_TOKEN}`
-    }).then((response) => {
-      expect(response.status).to.eq(200); // Verifica se a requisição foi bem-sucedida
-      cy.log(`Card excluido com sucesso!`);
-    });
-  });
+        return trelloRequest({
+          method: "POST",
+          url: `/1/boards/${boardId}/lists`,
+          qs: { name: "Automated test list" },
+        });
+      })
+      .then((response) => {
+        expect(response.status).to.eq(200);
+        listId = response.body.id;
 
-  it('Excluir um board', () => {
-    cy.request({
-      method: 'DELETE',
-      url: `${URL_TRELLO}/boards/${boardId}?key=${API_KEY}&token=${API_TOKEN}`
-    }).then((response) => {
-      expect(response.status).to.eq(200); // Verifica se a requisição foi bem-sucedida
-      cy.log(`Board excluido com sucesso!`);
-    });
+        return trelloRequest({
+          method: "POST",
+          url: "/1/cards",
+          qs: {
+            idList: listId,
+            name: "Automated test card",
+          },
+        });
+      })
+      .then((response) => {
+        expect(response.status).to.eq(200);
+        cardId = response.body.id;
+
+        return trelloRequest({
+          method: "DELETE",
+          url: `/1/cards/${cardId}`,
+        });
+      })
+      .then((response) => {
+        expect(response.status).to.eq(200);
+
+        return trelloRequest({
+          method: "DELETE",
+          url: `/1/boards/${boardId}`,
+        });
+      })
+      .then((response) => {
+        expect(response.status).to.eq(200);
+        boardId = undefined;
+      });
   });
 });

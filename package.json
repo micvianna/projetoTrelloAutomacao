@@ -1,19 +1,27 @@
 {
   "name": "projetotrelloautomacao",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "cypress:open": "cypress open"
+  "description": "Cypress API automation demo for the Trello board, list and card lifecycle.",
+  "private": true,
+  "engines": {
+    "node": "^20.1.0 || ^22.0.0 || >=24.0.0"
   },
-  "keywords": [],
+  "scripts": {
+    "test": "cypress run",
+    "test:headless": "cypress run --headless",
+    "test:open": "cypress open",
+    "cypress:open": "cypress open",
+    "cypress:verify": "cypress verify"
+  },
+  "keywords": [
+    "cypress",
+    "api-testing",
+    "test-automation",
+    "trello"
+  ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "cypress": "^13.6.1"
-  },
   "devDependencies": {
-    "chai": "^4.3.10"
+    "cypress": "^15.20.1"
   }
 }

@@ -1,0 +1,16 @@
+node_modules/
+
+# Credenciais locais
+.env
+.env.*
+!.env.example
+cypress.env.json
+
+# Artefatos do Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
+# Logs e arquivos do sistema
+npm-debug.log*
+.DS_Store
